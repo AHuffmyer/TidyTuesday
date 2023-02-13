@@ -71,7 +71,7 @@ feeder_df<-feederwatch %>%
   arrange(loc_id)%>%
   mutate(norm_count=how_many/effort_hrs_atleast)%>%
   group_by(loc_id, subnational1_code)%>%
-  summarise(total_birds_norm=sum(how_many))
+  summarise(total_birds_norm=sum(norm_count))
 
 head(feeder_df)
 ```
@@ -90,7 +90,7 @@ site_df<-site_data%>%
   unique()
 ```
 
-Note that some sites have multiple habitat types. We will keep these for now. 
+Note that you can also keep all columns that `starts_with(hab)` or `ends_with(atleast)`. 
 
 Now merge the two data frames together and subset by WA.  
 
