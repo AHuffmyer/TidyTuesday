@@ -20,7 +20,7 @@ library(tidyverse)
 library(RColorBrewer)
 ```
 
-Load data frame for FeederWatch
+Load data frame for languages.
 
 ``` r
 # Read in the data manually
