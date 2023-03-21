@@ -1,0 +1,201 @@
+---
+title: "Tidy Tuesday: 27 March Lab Meeting"
+author: "AS Huffmyer"
+date: "2023" 
+output:
+  html_document:
+    code_folding: hide
+    toc: yes
+    toc_depth: 6
+    toc_float: yes
+  pdf_document:
+    keep_tex: yes
+editor_options: 
+  chunk_output_type: console
+---
+
+Loading data for Tidy Tuesday lab meeting practice. 
+
+# *Setup*  
+
+Set knit options. 
+```{r}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE, message=FALSE)
+```
+
+Load packages. 
+
+```{r}
+library(tidyverse)
+library(RColorBrewer)
+```
+
+Load data frame for FeederWatch
+
+```{r}
+# Read in the data manually
+
+languages <- readr::read_csv('https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2023/2023-03-21/languages.csv')
+
+```
+
+# *Examine dataset*  
+
+Look at languages dataset. 
+```{r}
+str(languages)
+```
+
+# *Questions that I want to answer*  
+
+1. Which languages have the most users? 
+Plot: Bar plot with total users on the Y, language on the X, ordered by total users 
+
+2. Does user count relate to the age of the language? 
+Plot: Scatter plot with correlation with year created on the X and users on the Y 
+
+3. Which languages are most highly used in GitHub repos? 
+Plot: Bar plot with GitHub users on the Y, language on the X, ordered by GitHub users
+
+4. Does having a language be open source relate to having more users? 
+Plot: Scatter plot with language on X, users on Y, color by open source or not 
+
+# 1. Which languages have the most users? 
+
+First view a histogram of the number of users. 
+```{r}
+hist(languages$number_of_users)
+```
+
+We need to remove the lower user counts to be able to see more information about the higher user counts. Try removing any language with less than 100,000 users. 
+```{r}
+users<-languages%>%
+  select(number_of_users)%>%
+  filter(number_of_users>100000)
+
+hist(users$number_of_users)
+```
+
+Plot the number of users for each language for languages with >100,000 users. 
+```{r}
+languages%>%
+  filter(number_of_users>100000)%>%
+  
+  ggplot(aes(x=reorder(title, -number_of_users), y=number_of_users, fill=factor(ifelse(title=="R","Highlighted","Normal"))))+
+  geom_bar(stat = "identity", color="black")+
+  scale_fill_manual(name = "area", values=c("red","white")) +
+  xlab("Language")+
+  ylab("Number of Users")+
+  scale_y_continuous(labels = scales::comma)+
+  theme_classic()+
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1),
+    legend.position="none"
+  )
+```
+
+The most used languages are SQL, Java, HTML, and C++. 
+
+# 2. Does user count relate to the age of the language? 
+
+Generate a scatter plot that shows the correlation between the year the language was created and the number of users. 
+
+```{r}
+languages%>%
+  #filter(number_of_users>100000)%>%
+  
+  ggplot(aes(x=appeared, y=number_of_users))+
+  geom_point(color="gray")+
+  stat_smooth(color="black")+
+  xlab("Year Appeared")+
+  ylab("Number of Users")+
+  scale_y_continuous(labels = scales::comma)+
+  theme_classic()
+```
+
+This plot isn't that helpful. Instead plot relationship between year and number of users for languages with >100,000 users.  
+
+```{r}
+languages%>%
+  filter(number_of_users>100000)%>%
+  
+  ggplot(aes(x=appeared, y=number_of_users, color=factor(ifelse(title=="R","Highlighted","Normal"))))+
+  geom_point()+
+  stat_smooth(method="lm", color="black")+
+  geom_text(aes(label=ifelse(number_of_users>4000000,as.character(title),'')),hjust=-0.2,vjust=0, color="black")+
+  geom_text(aes(label=ifelse(title=="R",as.character(title),'')),hjust=-0.2,vjust=0, color="red")+
+  scale_color_manual(name = "area", values=c("red","gray")) +
+  geom_text(aes(label=ifelse(appeared<1965,as.character(title),'')),hjust=-0.2,vjust=0, color="black")+
+  geom_text(aes(label=ifelse(appeared>2010,as.character(title),'')),hjust=-0.2,vjust=0, color="black")+
+  xlab("Year Appeared")+
+  ylab("Number of Users")+
+  scale_y_continuous(labels = scales::comma)+
+  theme_classic()+
+  theme(
+    legend.position="none"
+  )
+```
+
+There appears to be a weak positive relationship between age of lanugage and the number of users (newer programs tend to have fewer users).  
+
+# 3. Which languages are most highly used in GitHub repos? 
+
+First view a histogram of the number of GitHub repos 
+```{r}
+hist(languages$github_language_repos)
+```
+
+We need to remove the lower user counts to be able to see more information about the higher repo counts. Try removing any language with less than 100,000 repos. 
+```{r}
+git<-languages%>%
+  select(github_language_repos)%>%
+  filter(github_language_repos>100000)
+
+hist(git$github_language_repos)
+```
+
+Plot the number of GitHub repos for each language for languages with >100,000 repos.  
+```{r}
+languages%>%
+  filter(github_language_repos>100000)%>%
+  
+  ggplot(aes(x=reorder(title, -github_language_repos), y=github_language_repos, fill=factor(ifelse(title=="R","Highlighted","Normal"))))+
+  geom_bar(stat = "identity", color="black")+
+  scale_fill_manual(name = "area", values=c("red","white")) +
+  xlab("Language")+
+  ylab("Number of GitHub Repos")+
+  scale_y_continuous(labels = scales::comma)+
+  theme_classic()+
+  theme(
+    axis.text.x = element_text(angle=45, hjust=1),
+    legend.position="none"
+  )
+```
+
+The highest languages on GitHub are Java, HTML, and Python. 
+
+# 4. Do open source languages have more users?
+
+Plot the number of users for each language and color the correlations by those with open source programmings. 
+
+Remove any languages that have NA in the `is_open_source` column that we don't have information for. 
+```{r}
+languages%>%
+  filter(!is.na(is_open_source))%>%
+  
+  ggplot(aes(x=is_open_source, y=number_of_users, color=factor(ifelse(title=="R","Highlighted","Normal"))))+
+  geom_point()+
+  geom_text(aes(label=ifelse(number_of_users>500000,as.character(title),'')),hjust=-0.2,vjust=0, color="black")+
+  geom_text(aes(label=ifelse(title=="R",as.character(title),'')),hjust=-0.2,vjust=0, color="red")+
+  scale_color_manual(name = "area", values=c("red","gray")) +
+  geom_text(aes(label=ifelse(is_open_source==FALSE & number_of_users>10000,as.character(title),'')),hjust=-0.2,vjust=0, color="black")+
+  xlab("Is the language open source?")+
+  ylab("Number of Users")+
+  scale_y_continuous(labels = scales::comma)+
+  theme_classic()+
+  theme(
+    legend.position="none"
+  )
+```
+
+There are not many languages that we have information for from this data set and there are only a few that are not open source. Of those that we have information for, it appears that open source languages have more users. 
